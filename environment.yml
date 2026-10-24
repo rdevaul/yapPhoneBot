@@ -1,0 +1,20 @@
+name: yapPhoneBot
+
+env:
+  - yapPhoneBot
+
+platforms:
+  - linux-64
+  - osx-arm64
+
+dependencies:
+  - python=3.11
+  - numpy>=1.22
+  - pip
+
+  # OpenCASCADE for analytic BREP
+  - pythonocc-core=7.7
+
+  # pip dependencies (installed after conda env is created)
+  - pip:
+    - "yapCAD[meshcheck] @ git+https://github.com/rdevaul/yapCAD.git@1363c157b1dea01fee7245c1f9fd8aaaeba79b93"

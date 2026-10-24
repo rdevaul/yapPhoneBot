@@ -1,0 +1,80 @@
+# yapPhoneBot — Procurement catalog
+#
+# Tracks the v0.1 leg + torso mechanical design.
+# Quantities for one robot (both legs + torso).
+{
+  "schema": "yaphonebot-procurement-v0.1",
+  "revision": "A",
+  "notes": [
+    "Quantities are for one humanoid robot (both legs + torso, no phone/SBC hardware).",
+    "Actuators are DYNAMIXEL XL430-W250-T throughout (13 total for the full robot; leg+torsolo uses all 13).",
+    "Verify all critical dimensions against the linked supplier drawing before ordering."
+  ],
+  "purchaseLines": [
+    {
+      "id": "SRV-XL430-W250-T",
+      "description": "DYNAMIXEL XL430-W250-T servo motor",
+      "supplier": "Robotis / Trossen Robotics",
+      "sku": "XL430-W250-T",
+      "url": "https://emanual.robotis.com/docs/en/dxl/x/xl430-w250-t/",
+      "unit": "each",
+      "packQuantity": 1,
+      "spares": 1,
+      "fixedRequired": 13
+    },
+    {
+      "id": "BRG-608-2RS",
+      "description": "608-2RS sealed bearing, 8 x 22 x 7 mm (ankle roll, hip roll pivots)",
+      "supplier": "McMaster-Carr",
+      "sku": "2349K744",
+      "url": "https://www.mcmaster.com/2349K744/",
+      "unit": "each",
+      "packQuantity": 1,
+      "spares": 4,
+      "fixedRequired": 8
+    },
+    {
+      "id": "SCR-M3-SOCKET",
+      "description": "M3 x 0.5 socket head cap screws (assorted lengths for servo mounting)",
+      "supplier": "McMaster-Carr",
+      "sku": "91290A006",
+      "url": "https://www.mcmaster.com/products/socket-head-screws/",
+      "unit": "each",
+      "packQuantity": 10,
+      "spares": 10
+    },
+    {
+      "id": "SCR-M2-SOCKET",
+      "description": "M2 x 0.4 socket head cap screws (servo horn attachment)",
+      "supplier": "McMaster-Carr",
+      "sku": "90177A115",
+      "url": "https://www.mcmaster.com/products/socket-head-screws/",
+      "unit": "each",
+      "packQuantity": 10,
+      "spares": 10
+    },
+    {
+      "id": "FIL-PETG",
+      "description": "PET-G filament, 1.75 mm",
+      "supplier": "Filament supplier",
+      "sku": "PETG-1.75-1KG",
+      "url": "",
+      "unit": "1 kg spool",
+      "packQuantity": 1,
+      "fixedRequired": 2,
+      "notes": "Estimated printed volume ~1.5 kg for leg + torso parts; 2 spools cover infill choice and fit coupons."
+    },
+    {
+      "id": "U2D2",
+      "description": "U2D2 USB-to-DYNAMIXEL board (for actuator communication during testing)",
+      "supplier": "Robotis",
+      "sku": "U2D2",
+      "url": "https://emanual.robotis.com/docs/en/software/dynamixel/dynamixel_sdk/",
+      "unit": "each",
+      "packQuantity": 1,
+      "spares": 0,
+      "fixedRequired": 1
+    }
+  ],
+  "stockLines": []
+}
