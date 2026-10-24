@@ -8,7 +8,7 @@ module yaphonebot_leg
 #
 # +X forward, +Y left, +Z up.  Left leg shown; right leg mirrored.
 
-use yaphonebot_servo
+use yaphonebot_servo as servo
 
 # === Parametric constants ==================================================
 command HIP_OFFSET_Y() -> float:
@@ -49,10 +49,10 @@ command SINGLE_LEG(s: float) -> solid:
     sl: float = SHIN_LENGTH_Z()
     ah: float = ANKLE_HEIGHT()
 
-    srv_y: solid = rotate(XL430_ENVELOPE(), 90.0, 0.0, 0.0)
-    srv_x: solid = rotate(XL430_ENVELOPE(), 0.0, 90.0, 0.0)
+    srv_y: solid = rotate(servo.XL430_ENVELOPE(), 90.0, 0.0, 0.0)
+    srv_x: solid = rotate(servo.XL430_ENVELOPE(), 0.0, 90.0, 0.0)
 
-    hip_yaw: solid   = translate(XL430_ENVELOPE(), 0.0, ho * s, 0.0)
+    hip_yaw: solid   = translate(servo.XL430_ENVELOPE(), 0.0, ho * s, 0.0)
     hip_roll: solid  = translate(srv_x, 0.0, ho * s, -18.0)
     hip_pitch: solid = translate(srv_y, 0.0, ho * s, -hl - 18.0)
     thigh: solid     = translate(THIGH_LINK(), 0.0, ho * s, -hl - 18.0)

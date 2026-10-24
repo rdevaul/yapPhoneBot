@@ -3,11 +3,11 @@ module yaphonebot_torso
 # PhoneBot torso: single yaw joint + phone mount + SBC shelf + battery.
 # +X forward, +Y left, +Z up.
 
-use yaphonebot_servo
+use yaphonebot_servo as servo
 
 # === Torso yaw joint ====================================================
 command TORSO_YAW_JOINT(x: float, y: float, z: float) -> solid:
-    emit translate(XL430_ENVELOPE(), x, y, z)
+    emit translate(servo.XL430_ENVELOPE(), x, y, z)
 
 # === Upper body plate ===================================================
 command UPPER_BODY_PLATE() -> solid:

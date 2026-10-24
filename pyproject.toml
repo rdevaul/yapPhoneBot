@@ -21,7 +21,7 @@ classifiers = [
 dependencies = [
   "numpy>=1.22",
   # yapCAD main (1.2.0+): SDF geometry, mesh booleans, assemblies, .ycpkg.
-  "yapCAD[meshcheck] @ git+https://github.com/rdevaul/yapCAD.git@e530149ba0a8fae7c6e349fff3c8860afbf5688b",
+  "yapCAD[meshcheck] @ git+https://github.com/rdevaul/yapCAD.git@b806f813339908ec7dc67fd7d6143e1e40f9ba08",
 ]
 
 [project.optional-dependencies]

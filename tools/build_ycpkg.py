@@ -52,15 +52,32 @@ def build_ycpkg(
         print(f"ERROR: assembly DSL not found: {assembly}")
         sys.exit(1)
 
+    if output_dir.exists():
+        if force:
+            import shutil
+            shutil.rmtree(output_dir)
+        else:
+            print("ERROR: output dir exists. Use --force to replace.")
+            sys.exit(1)
+
     print("  Compiling yaphonebot_assembly.dsl (SDF mode)...")
 
     try:
         pkg_result = package_from_dsl(
-            str(assembly),
+            assembly.read_text(),
             "PHONEBOT_ZERO_POSE",
+            {},
+            output_dir,
+            name="yapPhoneBot",
+            version=version,
             representation="sdf",
             sdf_cell_mm=400.0 / resolution,  # ~400 mm robot height
+            sdf_simplify=False,
+            source_path=str(assembly),
+            overwrite=force,
         )
+        if not pkg_result.success:
+            raise RuntimeError(pkg_result.error_message)
     except Exception as e:
         print(f"  ERROR during compilation: {e}")
         print()
@@ -69,16 +86,6 @@ def build_ycpkg(
         _build_parts_fallback(resolution)
         return
 
-    if output_dir.exists():
-        if force:
-            import shutil
-            shutil.rmtree(output_dir)
-        else:
-            print(f"ERROR: output dir exists. Use --force to replace.")
-            sys.exit(1)
-
-    # The package_from_dsl result handling depends on the exact API
-    # For now, write the output directory
     print(f"\n  Package built successfully")
     print(f"  Written to: {output_dir}")
 
@@ -93,16 +100,17 @@ def _build_parts_fallback(resolution: int):
     build_dir.mkdir(parents=True, exist_ok=True)
 
     dsl_map = {
-        "designs/yaphonebot_servo.dsl": ["XL430_ENVELOPE"],
-        "designs/yaphonebot_leg.dsl": ["LEFT_LEG_ZERO_POSE"],
-        "designs/yaphonebot_torso.dsl": ["TORSO_ASSEMBLY"],
-        "designs/yaphonebot_assembly.dsl": ["PHONEBOT_ZERO_POSE"],
+        "yaphonebot_servo.dsl": [("XL430_ENVELOPE", "xl430_envelope.stl")],
+        "yaphonebot_leg.dsl": [("LEFT_LEG", "left_leg.stl")],
+        "yaphonebot_torso.dsl": [("TORSO", "torso.stl")],
+        "yaphonebot_assembly.dsl": [("PHONEBOT_ZERO_POSE", "phonebot_full.stl")],
     }
 
-    for dsl_path, commands in dsl_map.items():
-        source = (designs / dsl_path).read_text()
-        for cmd in commands:
-            print(f"  Compiling {cmd}...")
+    for dsl_name, commands in dsl_map.items():
+        dsl_file = designs / dsl_name
+        source = dsl_file.read_text()
+        for cmd, stl_name in commands:
+            print(f"  Compiling {cmd} from {dsl_name}...")
             try:
                 result = compile_and_run(
                     source,
@@ -110,13 +118,15 @@ def _build_parts_fallback(resolution: int):
                     {},
                     representation="sdf",
                     sdf_cell_mm=400.0 / resolution,
+                    sdf_simplify=False,
+                    source_path=str(dsl_file),
                 )
                 if result.success and result.geometry is not None:
-                    out_path = build_dir / f"{cmd.lower()}.stl"
+                    out_path = build_dir / stl_name
                     write_stl(result.geometry, str(out_path))
                     print(f"    → {out_path}")
                 else:
-                    print(f"    ⚠ compilation returned no geometry")
+                    print(f"    ⚠ compilation returned no geometry: {result.error_message}")
             except Exception as e:
                 print(f"    ✗ error: {e}")
 
