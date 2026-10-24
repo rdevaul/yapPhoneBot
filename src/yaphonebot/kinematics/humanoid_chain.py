@@ -21,11 +21,11 @@ from typing import Tuple
 # ankle_pitch| q4 | 0      | L3    | 0
 # ankle_roll | q5 | 0      | 0     | +90°
 
-# Default segment lengths (mm) — match the DSL parametric defaults
-DEFAULT_HIP_Z_OFFSET = 18.0    # hip yaw → hip roll stack
-DEFAULT_THIGH_LENGTH = 96.0    # hip pitch → knee pitch
-DEFAULT_SHIN_LENGTH = 96.0     # knee pitch → ankle pitch
-DEFAULT_ANKLE_HEIGHT = 41.0    # ankle pitch → foot sole (incl. ankle roll)
+# Default segment lengths (mm) — match the reference CAD dimensions
+DEFAULT_HIP_Z_OFFSET = 26.8    # hip yaw → hip roll cluster (HIP_LENGTH_X)
+DEFAULT_THIGH_LENGTH = 89.5    # thigh link (THIGH_LENGTH_Z)
+DEFAULT_SHIN_LENGTH = 82.4     # shin link (SHIN_LENGTH_Z)
+DEFAULT_ANKLE_HEIGHT = 44.0    # ankle cluster → foot sole (ANKLE_HEIGHT)
 
 
 def _dh_transform(
@@ -72,7 +72,7 @@ def leg_forward_kinematics(
 
     # Offset the hip yaw joint laterally for left/right
     base = np.eye(4)
-    base[1, 3] = side * 50.0  # HIP_OFFSET_Y from DSL
+    base[1, 3] = side * 52.5  # HIP_OFFSET_Y from DSL
 
     # Each DH frame: angles offset by -pi/2 to match the physical zero pose
     T = base.copy()
