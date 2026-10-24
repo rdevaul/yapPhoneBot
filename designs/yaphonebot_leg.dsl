@@ -2,157 +2,96 @@ module yaphonebot_leg
 
 # PhoneBot leg kinematic chain (6 DoF per leg) modeled in yapCAD DSL.
 #
-# Joint order (proximal → distal), matching phonebot.dev datums:
-#   J1  Hip yaw     (Z-axis rotation)
-#   J2  Hip roll    (X-axis rotation, offset from J1)
-#   J3  Hip pitch   (Y-axis rotation)
-#   J4  Knee pitch  (Y-axis rotation)
-#   J5  Ankle pitch (Y-axis rotation)
-#   J6  Ankle roll  (X-axis rotation)
+# Joint order (proximal to distal), matching phonebot.dev datums:
+#   J1  Hip yaw     (Z rotation)
+#   J2  Hip roll    (X rotation)
+#   J3  Hip pitch   (Y rotation)
+#   J4  Knee pitch  (Y rotation)
+#   J5  Ankle pitch (Y rotation)
+#   J6  Ankle roll  (X rotation)
 #
 # Coordinate convention: +X forward, +Y left, +Z up.
-# Left leg shown; right leg is mirrored about the XZ plane.
-#
-# All dimensions from the phonebot.dev Onshape model / STEP exports,
-# cross-referenced against the GrabCAD XL430 model.
+# Left leg shown; right leg is mirrored.
 
-# ---------------------------------------------------------------------------
-# Constants (in mm) — adjust as we verify against reference STLs
-# ---------------------------------------------------------------------------
+# === DYNAMIXEL XL430-W250-T servo envelope (self-contained) ================
+command XL430_BODY() -> solid:
+    body: solid = box(28.0, 48.5, 33.5)
+    emit body
 
-param HIP_OFFSET_Y: float = 50.0      # half-body-width offset from midline
-param HIP_LENGTH_X: float = 32.0      # hip pitch link length (servo body depth + bracket)
-param THIGH_LENGTH_Z: float = 96.0    # thigh length (hip pitch → knee pitch)
-param SHIN_LENGTH_Z: float = 96.0     # shin length (knee pitch → ankle pitch)
-param ANKLE_HEIGHT: float = 41.0      # ankle pitch → ground (foot sole)
+command XL430_SHAFT() -> solid:
+    shaft: solid = cylinder(2.55, 12.0)
+    emit translate(shaft, 0.0, 0.0, 16.75)
 
-# ---------------------------------------------------------------------------
-# Servo bracket: generic XL430 mount that clamps the servo body
-# ---------------------------------------------------------------------------
+command XL430_ENVELOPE() -> solid:
+    body: solid = XL430_BODY()
+    shaft: solid = XL430_SHAFT()
+    emit union(body, shaft)
 
-command SERVO_BRACKET(width: float, depth: float, height: float) -> solid:
-    # U-shaped bracket that wraps around a servo body.
-    # Simplified: rectangular shell with servo-shaped inner cutout.
-    let outer: solid = box(width, depth, height)
-    let inner: solid = box(width - 4.0, depth - 4.0, height - 2.0)
-    let shell: solid = difference(outer, translate(inner, 0.0, 0.0, 2.0))
-    emit shell
+# === Parametric constants (mm) =============================================
+command HIP_OFFSET_Y() -> float:
+    emit 50.0
 
-# ---------------------------------------------------------------------------
-# Joint: servo + bracket, parameterized by output axis
-# ---------------------------------------------------------------------------
+command HIP_LENGTH_X() -> float:
+    emit 32.0
 
-command HIP_YAW_JOINT(x: float, y: float, z: float) -> solid:
-    # Hip yaw: servo shaft vertical (+Z), body below
-    let servo: solid = translate(XL430_ENVELOPE(), x, y, z)
-    emit servo
+command THIGH_LENGTH_Z() -> float:
+    emit 96.0
 
-command HIP_ROLL_JOINT(x: float, y: float, z: float) -> solid:
-    # Hip roll: servo shaft along +X, body offset
-    let servo: solid = rotate(XL430_ENVELOPE(), 0.0, 90.0, 0.0)
-    emit translate(servo, x, y, z)
+command SHIN_LENGTH_Z() -> float:
+    emit 96.0
 
-command HIP_PITCH_JOINT(x: float, y: float, z: float) -> solid:
-    # Hip pitch: servo shaft along +Y
-    let servo: solid = rotate(XL430_ENVELOPE(), 90.0, 0.0, 0.0)
-    emit translate(servo, x, y, z)
+command ANKLE_HEIGHT() -> float:
+    emit 41.0
 
-command KNEE_PITCH_JOINT(x: float, y: float, z: float) -> solid:
-    # Knee pitch: servo shaft along +Y
-    let servo: solid = rotate(XL430_ENVELOPE(), 90.0, 0.0, 0.0)
-    emit translate(servo, x, y, z)
-
-command ANKLE_PITCH_JOINT(x: float, y: float, z: float) -> solid:
-    # Ankle pitch: servo shaft along +Y
-    let servo: solid = rotate(XL430_ENVELOPE(), 90.0, 0.0, 0.0)
-    emit translate(servo, x, y, z)
-
-command ANKLE_ROLL_JOINT(x: float, y: float, z: float) -> solid:
-    # Ankle roll: servo shaft along +X
-    let servo: solid = rotate(XL430_ENVELOPE(), 0.0, 90.0, 0.0)
-    emit translate(servo, x, y, z)
-
-# ---------------------------------------------------------------------------
-# Structural links between joints
-# ---------------------------------------------------------------------------
-
+# === Structural links ======================================================
 command THIGH_LINK() -> solid:
-    # Simplified thigh link: box spanning hip pitch to knee pitch
-    let link: solid = box(28.0, 20.0, THIGH_LENGTH_Z)
-    emit translate(link, 0.0, 0.0, THIGH_LENGTH_Z / 2.0)
+    len_z: float = THIGH_LENGTH_Z()
+    link: solid = box(28.0, 20.0, len_z)
+    emit translate(link, 0.0, 0.0, len_z / 2.0)
 
 command SHIN_LINK() -> solid:
-    # Simplified shin link: box spanning knee pitch to ankle pitch
-    let link: solid = box(24.0, 18.0, SHIN_LENGTH_Z)
-    emit translate(link, 0.0, 0.0, SHIN_LENGTH_Z / 2.0)
+    len_z: float = SHIN_LENGTH_Z()
+    link: solid = box(24.0, 18.0, len_z)
+    emit translate(link, 0.0, 0.0, len_z / 2.0)
 
 command FOOT_PLATE() -> solid:
-    # Flat foot plate with ankle roll servo mounted above
-    let plate: solid = box(40.0, 60.0, 8.0)
+    plate: solid = box(40.0, 60.0, 8.0)
     emit translate(plate, 0.0, 0.0, -4.0)
 
-# ---------------------------------------------------------------------------
-# Full left leg assembly (zero pose)
-# ---------------------------------------------------------------------------
+# === Left leg zero pose ====================================================
+command LEFT_LEG_ZERO_POSE(side: int = 1) -> solid:
+    ho: float = HIP_OFFSET_Y()
+    hl: float = HIP_LENGTH_X()
+    tl: float = THIGH_LENGTH_Z()
+    sl: float = SHIN_LENGTH_Z()
+    ah: float = ANKLE_HEIGHT()
+    s: float = float(side)
 
-command LEFT_LEG_ZERO_POSE() -> solid:
-    # Build the leg chain from torso mount down to foot, all at zero joint angles.
-    # The chain is built bottom-up so each joint sits at the distal end of the
-    # previous link.
+    srv_y: solid = rotate(XL430_ENVELOPE(), 90.0, 0.0, 0.0)
+    srv_x: solid = rotate(XL430_ENVELOPE(), 0.0, 90.0, 0.0)
 
-    # Hip yaw mount point (at torso interface, offset from midline)
-    let hip_yaw: solid = HIP_YAW_JOINT(0.0, HIP_OFFSET_Y, 0.0)
+    hip_yaw: solid = translate(XL430_ENVELOPE(), 0.0, ho * s, 0.0)
+    hip_roll: solid = translate(srv_x, 0.0, ho * s, -18.0)
+    hip_pitch: solid = translate(srv_y, 0.0, ho * s, -hl - 18.0)
+    thigh: solid = translate(THIGH_LINK(), 0.0, ho * s, -hl - 18.0)
 
-    # Hip roll: directly below hip yaw (compact stack)
-    let hip_roll: solid = HIP_ROLL_JOINT(0.0, HIP_OFFSET_Y, -18.0)
+    knee_y: float = -hl - 18.0 - tl
+    knee_pitch: solid = translate(srv_y, 0.0, ho * s, knee_y)
+    shin: solid = translate(SHIN_LINK(), 0.0, ho * s, knee_y)
 
-    # Hip pitch link + servo
-    let hip_pitch: solid = HIP_PITCH_JOINT(0.0, HIP_OFFSET_Y, -HIP_LENGTH_X - 18.0)
-    let thigh: solid = translate(THIGH_LINK(), 0.0, HIP_OFFSET_Y, -HIP_LENGTH_X - 18.0)
+    ankle_pitch_y: float = knee_y - sl
+    ankle_pitch: solid = translate(srv_y, 0.0, ho * s, ankle_pitch_y)
+    ankle_roll: solid = translate(srv_x, 0.0, ho * s, ankle_pitch_y - 18.0)
 
-    # Knee pitch servo at the end of the thigh
-    let knee_pitch: solid = KNEE_PITCH_JOINT(0.0, HIP_OFFSET_Y, -HIP_LENGTH_X - 18.0 - THIGH_LENGTH_Z)
-    let shin: solid = translate(SHIN_LINK(), 0.0, HIP_OFFSET_Y, -HIP_LENGTH_X - 18.0 - THIGH_LENGTH_Z)
-
-    # Ankle pitch at the end of the shin
-    let ankle_pitch: solid = ANKLE_PITCH_JOINT(
-        0.0, HIP_OFFSET_Y,
-        -HIP_LENGTH_X - 18.0 - THIGH_LENGTH_Z - SHIN_LENGTH_Z
-    )
-
-    # Ankle roll + foot plate at the bottom
-    let ankle_roll: solid = ANKLE_ROLL_JOINT(
-        0.0, HIP_OFFSET_Y,
-        -HIP_LENGTH_X - 18.0 - THIGH_LENGTH_Z - SHIN_LENGTH_Z - 18.0
-    )
-    let foot: solid = translate(FOOT_PLATE(), 0.0, HIP_OFFSET_Y,
-        -HIP_LENGTH_X - 18.0 - THIGH_LENGTH_Z - SHIN_LENGTH_Z - ANKLE_HEIGHT)
+    foot_z: float = ankle_pitch_y - ah
+    foot: solid = translate(FOOT_PLATE(), 0.0, ho * s, foot_z)
 
     emit compound(
         hip_yaw, hip_roll, hip_pitch, thigh,
         knee_pitch, shin, ankle_pitch, ankle_roll, foot
     )
 
-# ---------------------------------------------------------------------------
-# Right leg: mirror of left about XZ plane (Y → -Y)
-# ---------------------------------------------------------------------------
-
+# === Right leg zero pose ===================================================
 command RIGHT_LEG_ZERO_POSE() -> solid:
-    let left: solid = LEFT_LEG_ZERO_POSE()
+    left: solid = LEFT_LEG_ZERO_POSE(1)
     emit mirror(left, vector(0.0, 1.0, 0.0))
-
-# ---------------------------------------------------------------------------
-# Parametric leg (accepts override parameters)
-# ---------------------------------------------------------------------------
-
-command LEFT_LEG_PARAMETRIC(
-    hip_offset_y: float,
-    hip_length_x: float,
-    thigh_length_z: float,
-    shin_length_z: float,
-    ankle_height: float
-) -> solid:
-    # Placeholder for a fully parametric leg that accepts segment lengths.
-    # The zero-pose version above uses the module-level params; this entry
-    # point exists so the build tools can sweep dimensions.
-    emit LEFT_LEG_ZERO_POSE()

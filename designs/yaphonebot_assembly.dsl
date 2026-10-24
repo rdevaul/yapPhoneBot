@@ -1,140 +1,168 @@
 module yaphonebot_assembly
 
-# Full PhoneBot assembly: torso + left leg + right leg.
+# Full PhoneBot assembly: torso + left leg + right leg in zero (standing) pose.
 #
-# This file is the top-level DSL entry point that composes the
-# individual modules into a complete robot in its zero (standing) pose.
-#
-# Coordinate convention: +X forward, +Y left, +Z up.
-# Origin (0, 0, 0) is at the torso yaw joint center.
-# Ground plane is at Z ≈ -HIP_LENGTH_X - THIGH - SHIN - ANKLE_HEIGHT.
+# +X forward, +Y left, +Z up.  Origin at torso yaw joint centre.
 
-# Include sub-modules (yapCAD resolves these by filename)
-# yaphonebot_servo.dsl   → servo envelope primitives
-# yaphonebot_leg.dsl     → leg kinematic chain
-# yaphonebot_torso.dsl   → torso + phone/SBC/battery
+# ===========================================================================
+# DYNAMIXEL XL430-W250-T servo envelope
+# ===========================================================================
+command XL430_BODY() -> solid:
+    body: solid = box(28.0, 48.5, 33.5)
+    emit body
 
-# ---------------------------------------------------------------------------
-# Full robot in zero pose
-# ---------------------------------------------------------------------------
+command XL430_SHAFT() -> solid:
+    shaft: solid = cylinder(2.55, 12.0)
+    emit translate(shaft, 0.0, 0.0, 16.75)
 
+command XL430_ENVELOPE() -> solid:
+    body: solid = XL430_BODY()
+    shaft: solid = XL430_SHAFT()
+    emit union(body, shaft)
+
+# ===========================================================================
+# Leg parametric constants
+# ===========================================================================
+command HIP_OFFSET_Y() -> float:
+    emit 50.0
+
+command HIP_LENGTH_X() -> float:
+    emit 32.0
+
+command THIGH_LENGTH_Z() -> float:
+    emit 96.0
+
+command SHIN_LENGTH_Z() -> float:
+    emit 96.0
+
+command ANKLE_HEIGHT() -> float:
+    emit 41.0
+
+# ===========================================================================
+# Leg structural links
+# ===========================================================================
+command THIGH_LINK() -> solid:
+    len_z: float = THIGH_LENGTH_Z()
+    link: solid = box(28.0, 20.0, len_z)
+    emit translate(link, 0.0, 0.0, len_z / 2.0)
+
+command SHIN_LINK() -> solid:
+    len_z: float = SHIN_LENGTH_Z()
+    link: solid = box(24.0, 18.0, len_z)
+    emit translate(link, 0.0, 0.0, len_z / 2.0)
+
+command FOOT_PLATE() -> solid:
+    plate: solid = box(40.0, 60.0, 8.0)
+    emit translate(plate, 0.0, 0.0, -4.0)
+
+# ===========================================================================
+# Single leg  (s = +1 left, s = -1 right)
+# ===========================================================================
+command SINGLE_LEG(s: float) -> solid:
+    ho: float = HIP_OFFSET_Y()
+    hl: float = HIP_LENGTH_X()
+    tl: float = THIGH_LENGTH_Z()
+    sl: float = SHIN_LENGTH_Z()
+    ah: float = ANKLE_HEIGHT()
+
+    srv_y: solid = rotate(XL430_ENVELOPE(), 90.0, 0.0, 0.0)
+    srv_x: solid = rotate(XL430_ENVELOPE(), 0.0, 90.0, 0.0)
+
+    hip_yaw: solid   = translate(XL430_ENVELOPE(), 0.0, ho * s, 0.0)
+    hip_roll: solid  = translate(srv_x, 0.0, ho * s, -18.0)
+    hip_pitch: solid = translate(srv_y, 0.0, ho * s, -hl - 18.0)
+    thigh: solid     = translate(THIGH_LINK(), 0.0, ho * s, -hl - 18.0)
+
+    knee_y: float      = -hl - 18.0 - tl
+    knee_pitch: solid  = translate(srv_y, 0.0, ho * s, knee_y)
+    shin: solid        = translate(SHIN_LINK(), 0.0, ho * s, knee_y)
+
+    ankle_pitch_y: float = knee_y - sl
+    ankle_pitch: solid   = translate(srv_y, 0.0, ho * s, ankle_pitch_y)
+    ankle_roll: solid    = translate(srv_x, 0.0, ho * s, ankle_pitch_y - 18.0)
+
+    foot_z: float = ankle_pitch_y - ah
+    foot: solid   = translate(FOOT_PLATE(), 0.0, ho * s, foot_z)
+
+    emit compound(
+        hip_yaw, hip_roll, hip_pitch, thigh,
+        knee_pitch, shin, ankle_pitch, ankle_roll, foot
+    )
+
+command LEFT_LEG() -> solid:
+    emit SINGLE_LEG(1.0)
+
+command RIGHT_LEG() -> solid:
+    left: solid = LEFT_LEG()
+    emit mirror(left, vector(0.0, 1.0, 0.0))
+
+# ===========================================================================
+# Torso
+# ===========================================================================
+command TORSO_YAW_JOINT(x: float, y: float, z: float) -> solid:
+    emit translate(XL430_ENVELOPE(), x, y, z)
+
+command UPPER_BODY_PLATE() -> solid:
+    emit translate(box(80.0, 100.0, 8.0), 0.0, 0.0, 20.0)
+
+command PHONE_CRADLE() -> solid:
+    base: solid = box(78.0, 158.0, 4.0)
+    lw: solid   = box(4.0, 158.0, 20.0)
+    rw: solid   = box(4.0, 158.0, 20.0)
+    bw: solid   = box(78.0, 4.0, 20.0)
+    emit compound(
+        translate(base, 0.0, 0.0, 28.0),
+        translate(lw, -39.0, 0.0, 28.0),
+        translate(rw, 39.0, 0.0, 28.0),
+        translate(bw, 0.0, 77.0, 28.0)
+    )
+
+command SBC_SHELF() -> solid:
+    shelf: solid = box(90.0, 60.0, 4.0)
+    riser: solid = box(90.0, 60.0, 15.0)
+    emit compound(
+        translate(shelf, 0.0, -55.0, 30.0),
+        translate(riser, 0.0, -55.0, 22.0)
+    )
+
+command BATTERY_COMPARTMENT() -> solid:
+    comp: solid = box(50.0, 125.0, 30.0)
+    inner: solid = box(44.0, 119.0, 26.0)
+    hull: solid = difference(comp, translate(inner, 0.0, 0.0, 4.0))
+    emit translate(hull, 0.0, 0.0, -20.0)
+
+command LOWER_BODY_PLATE() -> solid:
+    emit translate(box(80.0, 100.0, 8.0), 0.0, 0.0, -28.0)
+
+command LEG_TOWER(side: int) -> solid:
+    require side == -1 or side == 1, "side must be -1 or +1"
+    tower: solid = box(30.0, 20.0, 28.0)
+    bore: solid = cylinder(5.0, 30.0)
+    bore_rotated: solid = rotate(bore, 90.0, 0.0, 0.0)
+    bored_tower: solid = difference(tower, translate(bore_rotated, 0.0, 0.0, 0.0))
+    emit translate(bored_tower, side * 40.0, 0.0, -14.0)
+
+command TORSO() -> solid:
+    emit compound(
+        TORSO_YAW_JOINT(0.0, 0.0, 0.0),
+        UPPER_BODY_PLATE(),
+        PHONE_CRADLE(),
+        SBC_SHELF(),
+        BATTERY_COMPARTMENT(),
+        LOWER_BODY_PLATE(),
+        LEG_TOWER(1),
+        LEG_TOWER(-1)
+    )
+
+# ===========================================================================
+# Top-level commands
+# ===========================================================================
 command PHONEBOT_ZERO_POSE() -> solid:
-    let torso: solid = TORSO_ASSEMBLY()
-    let left_leg: solid = LEFT_LEG_ZERO_POSE()
-    let right_leg: solid = RIGHT_LEG_ZERO_POSE()
+    emit compound(TORSO(), LEFT_LEG(), RIGHT_LEG())
 
-    emit compound(torso, left_leg, right_leg)
-
-# ---------------------------------------------------------------------------
-# Annotated assembly with named parts (for BOM generation)
-# ---------------------------------------------------------------------------
-
-instance left_leg: "yaphonebot_leg" at (0, 0, 0):
-    mate hip_yaw_mount to torso.left_hip_yaw
-    mate foot_to_ground to ground.z_zero
-
-instance right_leg: "yaphonebot_leg" at (0, 0, 0):
-    mate hip_yaw_mount to torso.right_hip_yaw
-    mate foot_to_ground to ground.z_zero
-
-instance torso: "yaphonebot_torso" at (0, 0, 0):
-    mate ground_mount to chassis.top
-
-# ---------------------------------------------------------------------------
-# Mates and coupling graph
-# ---------------------------------------------------------------------------
-
-mate torso.left_hip_yaw {
-    type: revolute
-    axis: (0, 0, 1)          # Z-axis rotation for hip yaw
-    location: (0, 50.0, 0)   # offset from midline
-    range: [-90, 90]         # degrees, to be validated
-}
-
-mate torso.right_hip_yaw {
-    type: revolute
-    axis: (0, 0, 1)
-    location: (0, -50.0, 0)
-    range: [-90, 90]
-}
-
-mate torso.yaw_joint {
-    type: revolute
-    axis: (0, 0, 1)
-    location: (0, 0, 0)
-    range: [-90, 90]
-}
-
-mate leg.hip_roll {
-    type: revolute
-    axis: (1, 0, 0)          # X-axis rotation
-    offset_from_parent: (0, 0, -18.0)
-    range: [-45, 45]
-}
-
-mate leg.hip_pitch {
-    type: revolute
-    axis: (0, 1, 0)          # Y-axis rotation
-    offset_from_parent: (0, 0, -HIP_LENGTH_X)
-    range: [-90, 90]
-}
-
-mate leg.knee_pitch {
-    type: revolute
-    axis: (0, 1, 0)
-    offset_from_parent: (0, 0, -THIGH_LENGTH_Z)
-    range: [0, 135]          # knee only bends one way
-}
-
-mate leg.ankle_pitch {
-    type: revolute
-    axis: (0, 1, 0)
-    offset_from_parent: (0, 0, -SHIN_LENGTH_Z)
-    range: [-45, 45]
-}
-
-mate leg.ankle_roll {
-    type: revolute
-    axis: (1, 0, 0)
-    offset_from_parent: (0, 0, -18.0)
-    range: [-30, 30]
-}
-
-# Ground contact plane
-mate ground.z_zero {
-    type: fixed
-    axis: (0, 0, 1)
-    location: (0, 0, -266.0)  # approximate ground height in zero pose
-}
-
-# ---------------------------------------------------------------------------
-# BOM metadata (per-part material / procurement class)
-# ---------------------------------------------------------------------------
-
-bom_part left_leg {
-    material: "PETG"
-    class: "make"
-    printer: "FDM"
-    estimated_mass_g: 150
-}
-
-bom_part right_leg {
-    material: "PETG"
-    class: "make"
-    printer: "FDM"
-    estimated_mass_g: 150
-}
-
-bom_part torso {
-    material: "PETG"
-    class: "make"
-    printer: "FDM"
-    estimated_mass_g: 200
-}
-
-bom_part servo {
-    material: "COTS"
-    class: "buy"
-    part_number: "DYNAMIXEL-XL430-W250-T"
-    quantity: 13
-}
+command PHONEBOT_ASSEMBLY() -> assembly:
+    a0: assembly = assembly("PhoneBot v0.1")
+    a1: assembly = add_part(a0, TORSO(), "torso")
+    a2: assembly = add_part(a1, LEFT_LEG(), "left_leg")
+    a3: assembly = add_part(a2, RIGHT_LEG(), "right_leg")
+    emit a3

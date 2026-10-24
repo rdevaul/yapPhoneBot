@@ -1,109 +1,85 @@
 module yaphonebot_torso
 
-# PhoneBot torso: single yaw joint + smartphone / SBC mounting structure.
-#
-# The torso provides:
-#   - 1 DoF yaw rotation (DYNAMIXEL XL430-W250-T)
-#   - Phone clamp / cradle
-#   - SBC mounting shelf (Raspberry Pi or equivalent)
-#   - Battery compartment (3S LiPo)
+# PhoneBot torso: single yaw joint + phone mount + SMC shelf + battery.
 #
 # Coordinate convention: +X forward, +Y left, +Z up.
-# Torso yaw joint center is the robot's geometric midline origin.
 
-# ---------------------------------------------------------------------------
-# Torso yaw joint
-# ---------------------------------------------------------------------------
+# === DYNAMIXEL XL430-W250-T servo envelope (self-contained) ================
+command XL430_BODY() -> solid:
+    body: solid = box(28.0, 48.5, 33.5)
+    emit body
 
+command XL430_SHAFT() -> solid:
+    shaft: solid = cylinder(2.55, 12.0)
+    emit translate(shaft, 0.0, 0.0, 16.75)
+
+command XL430_ENVELOPE() -> solid:
+    body: solid = XL430_BODY()
+    shaft: solid = XL430_SHAFT()
+    emit union(body, shaft)
+
+# === Torso yaw joint ======================================================
 command TORSO_YAW_JOINT(x: float, y: float, z: float) -> solid:
-    # Servo shaft vertical (+Z), connecting lower body to upper body
-    let servo: solid = XL430_ENVELOPE()
-    emit translate(servo, x, y, z)
+    emit translate(XL430_ENVELOPE(), x, y, z)
 
-# ---------------------------------------------------------------------------
-# Upper body plate (above the yaw joint)
-# ---------------------------------------------------------------------------
-
+# === Upper body plate ======================================================
 command UPPER_BODY_PLATE() -> solid:
-    # Flat plate carrying the phone cradle and SBC shelf
-    let plate: solid = box(80.0, 100.0, 8.0)
+    plate: solid = box(80.0, 100.0, 8.0)
     emit translate(plate, 0.0, 0.0, 20.0)
 
-# ---------------------------------------------------------------------------
-# Phone cradle
-# ---------------------------------------------------------------------------
-
+# === Phone cradle ==========================================================
 command PHONE_CRADLE() -> solid:
-    # Open-frame cradle for a smartphone (~75 x 155 x 9 mm envelope)
-    # Simplified as a U-channel with retention bumps
-    let base: solid = box(78.0, 158.0, 4.0)
-    let left_wall: solid = box(4.0, 158.0, 20.0)
-    let right_wall: solid = box(4.0, 158.0, 20.0)
-    let bottom_wall: solid = box(78.0, 4.0, 20.0)
+    base: solid = box(78.0, 158.0, 4.0)
+    lw: solid = box(4.0, 158.0, 20.0)
+    rw: solid = box(4.0, 158.0, 20.0)
+    bw: solid = box(78.0, 4.0, 20.0)
     emit compound(
         translate(base, 0.0, 0.0, 28.0),
-        translate(left_wall, -39.0, 0.0, 28.0),
-        translate(right_wall, 39.0, 0.0, 28.0),
-        translate(bottom_wall, 0.0, 77.0, 28.0)
+        translate(lw, -39.0, 0.0, 28.0),
+        translate(rw, 39.0, 0.0, 28.0),
+        translate(bw, 0.0, 77.0, 28.0)
     )
 
-# ---------------------------------------------------------------------------
-# SBC shelf
-# ---------------------------------------------------------------------------
-
+# === SBC shelf =============================================================
 command SBC_SHELF() -> solid:
-    # Shelf for a Raspberry Pi 4 (85 x 56 mm footprint)
-    let shelf: solid = box(90.0, 60.0, 4.0)
-    let riser: solid = box(90.0, 60.0, 15.0)
+    shelf: solid = box(90.0, 60.0, 4.0)
+    riser: solid = box(90.0, 60.0, 15.0)
     emit compound(
         translate(shelf, 0.0, -55.0, 30.0),
         translate(riser, 0.0, -55.0, 22.0)
     )
 
-# ---------------------------------------------------------------------------
-# Battery compartment (3S LiPo, ~120 x 45 x 25 mm)
-# ---------------------------------------------------------------------------
-
+# === Battery compartment ===================================================
 command BATTERY_COMPARTMENT() -> solid:
-    let comp: solid = box(50.0, 125.0, 30.0)
-    let inner: solid = box(44.0, 119.0, 26.0)
-    let shell: solid = difference(comp, translate(inner, 0.0, 0.0, 4.0))
+    comp: solid = box(50.0, 125.0, 30.0)
+    inner: solid = box(44.0, 119.0, 26.0)
+    shell: solid = difference(comp, translate(inner, 0.0, 0.0, 4.0))
     emit translate(shell, 0.0, 0.0, -20.0)
 
-# ---------------------------------------------------------------------------
-# Lower body plate (below the yaw joint, leg mount surface)
-# ---------------------------------------------------------------------------
-
+# === Lower body plate ======================================================
 command LOWER_BODY_PLATE() -> solid:
-    let plate: solid = box(80.0, 100.0, 8.0)
+    plate: solid = box(80.0, 100.0, 8.0)
     emit translate(plate, 0.0, 0.0, -28.0)
 
-# ---------------------------------------------------------------------------
-# Leg mounting towers (left + right)
-# ---------------------------------------------------------------------------
-
+# === Leg mounting towers ===================================================
 command LEG_TOWER(side: int) -> solid:
-    # Vertical tower at the leg hip yaw mount point
-    # side = +1 for left, -1 for right
     require side == -1 or side == 1, "side must be -1 or +1"
-    let tower: solid = box(30.0, 20.0, 28.0)
-    let bore: solid = cylinder(5.0, 30.0)  # M8 shaft bore
-    let bored_tower: solid = difference(tower, translate(rotate(bore, 90.0, 0.0, 0.0), 0.0, 0.0, 0.0))
+    tower: solid = box(30.0, 20.0, 28.0)
+    bore: solid = cylinder(5.0, 30.0)
+    bore_rotated: solid = rotate(bore, 90.0, 0.0, 0.0)
+    bored_tower: solid = difference(tower, translate(bore_rotated, 0.0, 0.0, 0.0))
     emit translate(bored_tower, side * 40.0, 0.0, -14.0)
 
-# ---------------------------------------------------------------------------
-# Full torso assembly (zero pose)
-# ---------------------------------------------------------------------------
-
+# === Full torso assembly (zero pose) =======================================
 command TORSO_ASSEMBLY() -> solid:
-    let yaw: solid = TORSO_YAW_JOINT(0.0, 0.0, 0.0)
-    let upper: solid = UPPER_BODY_PLATE()
-    let cradle: solid = PHONE_CRADLE()
-    let sbc: solid = SBC_SHELF()
-    let battery: solid = BATTERY_COMPARTMENT()
-    let lower: solid = LOWER_BODY_PLATE()
-    let left_tower: solid = LEG_TOWER(1)
-    let right_tower: solid = LEG_TOWER(-1)
+    yaw: solid = TORSO_YAW_JOINT(0.0, 0.0, 0.0)
+    upper: solid = UPPER_BODY_PLATE()
+    cradle: solid = PHONE_CRADLE()
+    sbc: solid = SBC_SHELF()
+    battery: solid = BATTERY_COMPARTMENT()
+    lower: solid = LOWER_BODY_PLATE()
+    left_tower: solid = LEG_TOWER(1)
+    right_tower: solid = LEG_TOWER(-1)
 
     emit compound(
         yaw, upper, cradle, sbc, battery,
