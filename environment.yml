@@ -1,7 +1,7 @@
 name: yapPhoneBot
 
-env:
-  - yapPhoneBot
+channels:
+  - conda-forge
 
 platforms:
   - linux-64
@@ -11,10 +11,12 @@ dependencies:
   - python=3.11
   - numpy>=1.22
   - pip
+  - scipy
 
-  # OpenCASCADE for analytic BREP
-  - pythonocc-core=7.7
+  # OpenCASCADE is optional for SDF-first builds.
+  # Install for analytic BREP / STEP export:
+  # - pythonocc-core=7.7
 
-  # pip dependencies (installed after conda env is created)
   - pip:
-    - "yapCAD[meshcheck] @ git+https://github.com/rdevaul/yapCAD.git@1363c157b1dea01fee7245c1f9fd8aaaeba79b93"
+    # yapCAD main (1.2.0+) with SDF geometry system.
+    - "yapCAD[meshcheck] @ git+https://github.com/rdevaul/yapCAD.git@e530149ba0a8fae7c6e349fff3c8860afbf5688b"

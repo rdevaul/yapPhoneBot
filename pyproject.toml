@@ -20,8 +20,8 @@ classifiers = [
 ]
 dependencies = [
   "numpy>=1.22",
-  # Pin to a post-1.1 yapCAD commit with assembly, coupling, and packaging features.
-  "yapCAD[meshcheck] @ git+https://github.com/rdevaul/yapCAD.git@1363c157b1dea01fee7245c1f9fd8aaaeba79b93",
+  # yapCAD main (1.2.0+): SDF geometry, mesh booleans, assemblies, .ycpkg.
+  "yapCAD[meshcheck] @ git+https://github.com/rdevaul/yapCAD.git@e530149ba0a8fae7c6e349fff3c8860afbf5688b",
 ]
 
 [project.optional-dependencies]
